@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Target } from 'lucide-react';
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from '@/components/ui/use-toast';
 import { useRealtimeData } from '@/hooks/useRealtimeData';
 import { cn } from '@/lib/utils';
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
 
 type Goal = {
   id: string;
@@ -26,6 +27,8 @@ type Goal = {
   current_amount: number;
   target_date: string;
 };
+
+const COLORS = ['#8B5CF6', '#EC4899', '#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
 
 const Goals = () => {
   const { user } = useAuth();
@@ -55,6 +58,21 @@ const Goals = () => {
     from: new Date(),
     to: new Date(new Date().setDate(new Date().getDate() + 30)),
   });
+
+  // Calculate total progress across all goals
+  const totalProgress = goals?.reduce((acc, goal) => {
+    acc.totalCurrent += goal.current_amount;
+    acc.totalTarget += goal.target_amount;
+    return acc;
+  }, { totalCurrent: 0, totalTarget: 0 }) || { totalCurrent: 0, totalTarget: 0 };
+
+  // Transform goals data for pie chart
+  const pieChartData = goals?.map(goal => ({
+    name: goal.title,
+    value: goal.current_amount,
+    target: goal.target_amount,
+    progress: (goal.current_amount / goal.target_amount) * 100
+  })) || [];
 
   const handleAddGoal = async (data: Omit<Goal, "id" | "current_amount"> & { user_id: string }) => {
     try {
@@ -180,41 +198,139 @@ const Goals = () => {
   );
 
   return (
-    <div className="container space-y-6 animate-slide-up">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Savings Goals</h2>
-          <p className="text-sm text-muted-foreground">Plan your future & save for it</p>
-        </div>
-        <Button onClick={() => setIsAddingGoal(true)}>Add New Goal</Button>
-      </div>
-
-      {isAddingGoal && renderGoalForm()}
-
-      {isLoadingGoals ? (
-        <p>Loading goals...</p>
-      ) : (
-        <ScrollArea className="h-[400px] w-full rounded-md border">
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 p-4">
-            {goals?.map((goal) => (
-              <Card key={goal.id} className="overflow-hidden hover-lift">
-                <CardHeader>
-                  <CardTitle>{goal.title}</CardTitle>
-                  <CardDescription>
-                    Target Date: {new Date(goal.target_date).toLocaleDateString()}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    ${goal.current_amount} / ${goal.target_amount}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+    <DashboardLayout>
+      <div className="container py-8 space-y-6 animate-slide-up">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight">Savings Goals</h2>
+            <p className="text-sm text-muted-foreground">Plan your future & save for it</p>
           </div>
-        </ScrollArea>
-      )}
-    </div>
+          <Button onClick={() => setIsAddingGoal(true)}>Add New Goal</Button>
+        </div>
+
+        {isAddingGoal && renderGoalForm()}
+
+        {isLoadingGoals ? (
+          <p>Loading goals...</p>
+        ) : (
+          <>
+            {/* Overall Progress Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Overall Progress</CardTitle>
+                <CardDescription>Total savings across all goals</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Saved', value: totalProgress.totalCurrent },
+                          { name: 'Remaining', value: totalProgress.totalTarget - totalProgress.totalCurrent }
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {[0, 1].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={index === 0 ? '#8B5CF6' : '#E5E7EB'} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => [`₹${value.toLocaleString()}`, '']}
+                        contentStyle={{ backgroundColor: 'white', border: '1px solid #E5E7EB', borderRadius: '0.5rem' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-4 text-center">
+                  <p className="text-2xl font-bold">
+                    ₹{totalProgress.totalCurrent.toLocaleString()} / ₹{totalProgress.totalTarget.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {((totalProgress.totalCurrent / totalProgress.totalTarget) * 100).toFixed(1)}% of total goal
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Individual Goals */}
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+              {goals?.map((goal, index) => (
+                <Card key={goal.id} className="overflow-hidden hover-lift transition-all duration-200 hover:shadow-lg">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Target className="h-4 w-4 text-finley-purple" />
+                      {goal.title}
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Target: {new Date(goal.target_date).toLocaleDateString()}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-2">
+                    <div className="h-[120px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'Saved', value: goal.current_amount },
+                              { name: 'Remaining', value: goal.target_amount - goal.current_amount }
+                            ]}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={25}
+                            outerRadius={35}
+                            paddingAngle={2}
+                            dataKey="value"
+                          >
+                            {[0, 1].map((entry, idx) => (
+                              <Cell key={`cell-${idx}`} fill={idx === 0 ? COLORS[index % COLORS.length] : '#E5E7EB'} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            formatter={(value: number) => [`₹${value.toLocaleString()}`, '']}
+                            contentStyle={{ 
+                              backgroundColor: 'white', 
+                              border: '1px solid #E5E7EB', 
+                              borderRadius: '0.5rem',
+                              fontSize: '0.875rem',
+                              padding: '0.5rem'
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="mt-3 text-center space-y-1">
+                      <p className="text-lg font-semibold">
+                        ₹{goal.current_amount.toLocaleString()}
+                      </p>
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="h-1.5 w-16 rounded-full bg-finley-neutral-light overflow-hidden">
+                          <div 
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{ 
+                              width: `${(goal.current_amount / goal.target_amount) * 100}%`,
+                              backgroundColor: COLORS[index % COLORS.length]
+                            }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {((goal.current_amount / goal.target_amount) * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </DashboardLayout>
   );
 };
 

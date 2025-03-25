@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, ChevronDown, ShoppingBag, Coffee, Home, Car, Film, MoreHorizontal } from 'lucide-react';
@@ -15,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ResponsiveContainer, LineChart, XAxis, YAxis, Tooltip, Line } from 'recharts';
 
 interface ExpenseItemProps {
   category: string;
@@ -163,7 +163,8 @@ const ExpenseTracker = () => {
         };
       });
       
-      return result;
+      // Sort by total amount in decreasing order
+      return result.sort((a, b) => b.total - a.total);
     },
     enabled: !!user,
   });
@@ -180,6 +181,39 @@ const ExpenseTracker = () => {
     };
   });
   
+  const { data: monthlyExpenses = [] } = useQuery({
+    queryKey: ['expenses', 'monthly', periodType],
+    queryFn: async () => {
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      threeMonthsAgo.setHours(0, 0, 0, 0);
+
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .gte('date', threeMonthsAgo.toISOString())
+        .order('date', { ascending: true });
+      
+      if (error) throw error;
+      
+      // Group expenses by month
+      const monthlyData = data.reduce((acc: { [key: string]: number }, expense) => {
+        const date = new Date(expense.date);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const amount = typeof expense.amount === 'string' ? parseFloat(expense.amount) : expense.amount;
+        acc[monthKey] = (acc[monthKey] || 0) + amount;
+        return acc;
+      }, {});
+
+      // Convert to array format for the chart
+      return Object.entries(monthlyData).map(([month, total]) => ({
+        month,
+        total
+      }));
+    },
+    enabled: !!user,
+  });
+
   return (
     <div className="space-y-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
       <div className="flex items-center justify-between">
@@ -244,12 +278,12 @@ const ExpenseTracker = () => {
         </CardContent>
       </Card>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
         <Card className="col-span-1">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between">
               <span>Categories</span>
-              <ChipBadge variant="neutral">This Month</ChipBadge>
+              <ChipBadge variant="neutral">{periodType === 'week' ? 'This Week' : 'This Month'}</ChipBadge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -291,20 +325,53 @@ const ExpenseTracker = () => {
           </CardContent>
         </Card>
         
-        <Card className="col-span-1 md:col-span-2">
+        <Card className="col-span-1">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between">
               <span>Spending Trend</span>
-              <ChipBadge variant="teal">Last 6 Months</ChipBadge>
+              <ChipBadge variant="teal">Last 3 Months</ChipBadge>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center h-64">
-              <div className="text-center">
-                <p className="text-muted-foreground mb-2">Not enough data available yet</p>
-                <p className="text-sm text-muted-foreground">Continue tracking your expenses to see trends</p>
+            {monthlyExpenses.length > 0 ? (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={monthlyExpenses}>
+                    <XAxis 
+                      dataKey="month"
+                      tickFormatter={(value) => {
+                        const date = new Date(value);
+                        return date.toLocaleDateString('en-IN', { month: 'short' });
+                      }}
+                    />
+                    <YAxis 
+                      tickFormatter={(value) => `₹${value.toLocaleString()}`}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Total']}
+                      labelFormatter={(label) => {
+                        const date = new Date(label);
+                        return date.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+                      }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="total" 
+                      stroke="#8B5CF6" 
+                      strokeWidth={2}
+                      dot={{ fill: '#8B5CF6', strokeWidth: 2 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <p className="text-muted-foreground mb-2">Not enough data available yet</p>
+                  <p className="text-sm text-muted-foreground">Continue tracking your expenses to see trends</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
