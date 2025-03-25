@@ -11,6 +11,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { analyzeSpendingPatterns, detectAnomalies, predictBudget } from '@/utils/aiAlgorithms';
 import { exportToExcel } from '@/utils/exportToExcel';
+import { useToast } from '@/components/ui/use-toast';
+import { fetchAndGenerateSummary } from '@/utils/fetchAndGenerateSummary';
+
+// Type for records summary data
+type RecordSummary = {
+  id: string;
+  user_id: string;
+  month: number;
+  year: number;
+  total_income: number;
+  total_expenses: number;
+  total_savings: number;
+  budget_utilization_percentage: number;
+  created_at?: string;
+};
 
 // Custom components for insights sections
 const InsightSection = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => (
@@ -42,6 +57,7 @@ const InsightItem = ({ title, description, actionLabel, onAction }: { title: str
 const Insights = () => {
   const { user } = useAuth();
   const [isExporting, setIsExporting] = useState(false);
+  const { toast } = useToast();
 
   // Fetch expenses for AI analysis
   const { data: expenses = [], isLoading: isLoadingExpenses } = useQuery({
@@ -74,20 +90,14 @@ const Insights = () => {
     enabled: !!user,
   });
 
-  // Fetch records summary for export
-  const { data: recordsSummary = [], isLoading: isLoadingRecords } = useQuery({
-    queryKey: ['records_summary'],
+  // Fetch and generate record summaries before trying to use them
+  const { data: summaryData, isLoading: isGeneratingSummary } = useQuery({
+    queryKey: ['generate_summary'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('records_summary')
-        .select('*')
-        .order('year', { ascending: false })
-        .order('month', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
+      if (!user?.id) return null;
+      return await fetchAndGenerateSummary(user.id);
     },
-    enabled: !!user,
+    enabled: !!user?.id
   });
 
   // Run AI algorithms when data is available
@@ -115,11 +125,19 @@ const Insights = () => {
   const handleExportSummary = () => {
     setIsExporting(true);
     try {
-      exportToExcel(recordsSummary, `financial_summary_${new Date().toISOString().split('T')[0]}`);
-      toast({
-        title: "Export Successful",
-        description: "Your financial summary has been exported to Excel.",
-      });
+      if (summaryData && Array.isArray(summaryData)) {
+        exportToExcel(summaryData as RecordSummary[], `financial_summary_${new Date().toISOString().split('T')[0]}`);
+        toast({
+          title: "Export Successful",
+          description: "Your financial summary has been exported to Excel.",
+        });
+      } else {
+        toast({
+          title: "Export Failed",
+          description: "No summary data available to export. Please try again later.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error('Export error:', error);
       toast({
@@ -132,7 +150,7 @@ const Insights = () => {
     }
   };
 
-  const isLoading = isLoadingExpenses || isLoadingBudgets || isLoadingRecords;
+  const isLoading = isLoadingExpenses || isLoadingBudgets || isGeneratingSummary;
 
   return (
     <DashboardLayout>
@@ -146,7 +164,7 @@ const Insights = () => {
             <Button 
               onClick={handleExportSummary} 
               className="bg-finley-teal hover:bg-finley-teal-dark"
-              disabled={isExporting || recordsSummary.length === 0}
+              disabled={isExporting || !summaryData || (Array.isArray(summaryData) && summaryData.length === 0)}
             >
               <FileDown className="mr-2 h-4 w-4" />
               {isExporting ? 'Exporting...' : 'Get Your Summary'}

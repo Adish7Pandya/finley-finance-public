@@ -20,11 +20,11 @@ export const useRealtimeData = (
       .channel('table-db-changes')
       .on(
         'postgres_changes',
-        events.map(e => ({
-          event: e,
+        { 
+          event: events[0], // Use the first event for channel creation
           schema: 'public',
-          table
-        })),
+          table: table 
+        },
         (payload) => {
           console.log(`Realtime update received for ${table}:`, payload);
           onUpdate(payload);

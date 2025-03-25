@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Calendar as CalendarIcon } from 'lucide-react';
@@ -55,7 +56,7 @@ const Goals = () => {
     to: new Date(new Date().setDate(new Date().getDate() + 30)),
   });
 
-  const handleAddGoal = async (data: Omit<Goal, "id" | "current_amount" | "user_id"> & { user_id: string }) => {
+  const handleAddGoal = async (data: Omit<Goal, "id" | "current_amount"> & { user_id: string }) => {
     try {
       setIsLoading(true);
       
@@ -107,7 +108,7 @@ const Goals = () => {
                 !date && "text-muted-foreground"
               )}
             >
-              <LucideCalendarIcon className="mr-2 h-4 w-4" />
+              <CalendarIcon className="mr-2 h-4 w-4" />
               {date?.from ? (
                 format(date.from, "PPP")
               ) : (
@@ -122,7 +123,7 @@ const Goals = () => {
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="center" side="bottom">
-            <CalendarComponent
+            <Calendar
               mode="range"
               defaultMonth={date?.from}
               selected={date}
@@ -177,10 +178,6 @@ const Goals = () => {
       </div>
     </div>
   );
-
-  const cn = (...classes: string[]) => {
-    return classes.filter(Boolean).join(' ');
-  };
 
   return (
     <div className="container space-y-6 animate-slide-up">
