@@ -19,6 +19,7 @@ export const useRealtimeData = (
     // Create a channel name with a unique identifier
     const channelName = `table-changes-${table}-${Math.random().toString(36).substring(2, 11)}`;
     
+    // Using the correct channel syntax for Supabase
     const channel = supabase
       .channel(channelName)
       .on(
