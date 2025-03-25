@@ -8,11 +8,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Sample data for the pie chart
-const emptyData = [
-  { name: 'Available', value: 100 },
-];
-
 const COLORS = ['#9B87F5', '#ECEDF0'];
 
 const BudgetPlanner = () => {
@@ -22,9 +17,9 @@ const BudgetPlanner = () => {
   const currentYear = currentDate.getFullYear();
   const currentMonthName = currentDate.toLocaleString('default', { month: 'long' });
 
-  // Fetch current month's budget
-  const { data: currentBudget, isLoading } = useQuery({
-    queryKey: ['budget', currentMonth, currentYear],
+  // Fetch current month's budgets
+  const { data: budgets = [], isLoading } = useQuery({
+    queryKey: ['budgets', currentMonth, currentYear],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('budgets')
@@ -32,10 +27,10 @@ const BudgetPlanner = () => {
         .eq('user_id', user?.id)
         .eq('month', currentMonth)
         .eq('year', currentYear)
-        .single();
+        .order('category');
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!user,
   });
@@ -60,13 +55,11 @@ const BudgetPlanner = () => {
     enabled: !!user,
   });
 
-  // Calculate total spent
+  // Calculate total budget and spent amounts
+  const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
   const totalSpent = currentExpenses.reduce((sum, expense) => 
     sum + (typeof expense.amount === 'string' ? parseFloat(expense.amount) : expense.amount), 0
   );
-
-  // Calculate remaining budget
-  const totalBudget = currentBudget?.amount || 0;
   const remainingBudget = totalBudget - totalSpent;
 
   // Calculate percentage spent for the pie chart
@@ -75,6 +68,30 @@ const BudgetPlanner = () => {
     { name: 'Spent', value: percentageSpent },
     { name: 'Available', value: 100 - percentageSpent },
   ];
+
+  // Calculate spent amount per category
+  const spentByCategory = currentExpenses.reduce((acc, expense) => {
+    const category = expense.category;
+    const amount = typeof expense.amount === 'string' ? parseFloat(expense.amount) : expense.amount;
+    acc[category] = (acc[category] || 0) + amount;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Get budget amount per category
+  const budgetByCategory = budgets.reduce((acc, budget) => {
+    acc[budget.category] = budget.amount;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Category colors
+  const categoryColors = {
+    'Shopping': 'bg-red-400',
+    'Housing': 'bg-blue-400',
+    'Food & Drinks': 'bg-yellow-400',
+    'Transportation': 'bg-green-400',
+    'Entertainment': 'bg-purple-400',
+    'Other': 'bg-gray-400'
+  };
 
   return (
     <div className="space-y-6 animate-slide-up" style={{ animationDelay: '200ms' }}>
@@ -178,75 +195,29 @@ const BudgetPlanner = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Shopping Category */}
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="font-medium">Shopping</span>
-                  <div className="flex items-center">
-                    <IndianRupee className="h-3 w-3 mr-0.5" />
-                    <span>0 of ₹0</span>
+              {Object.entries(categoryColors).map(([category, color]) => {
+                const budget = budgetByCategory[category] || 0;
+                const spent = spentByCategory[category] || 0;
+                const percentage = budget > 0 ? (spent / budget) * 100 : 0;
+                
+                return (
+                  <div key={category}>
+                    <div className="flex items-center justify-between text-sm mb-1">
+                      <span className="font-medium">{category}</span>
+                      <div className="flex items-center">
+                        <IndianRupee className="h-3 w-3 mr-0.5" />
+                        <span>{spent.toLocaleString()} of ₹{budget.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <div className="h-2 rounded-full bg-finley-neutral-light overflow-hidden">
+                      <div 
+                        className={`h-full ${color} rounded-full`} 
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
                   </div>
-                </div>
-                <div className="h-2 rounded-full bg-finley-neutral-light overflow-hidden">
-                  <div className="h-full bg-red-400 rounded-full" style={{ width: '0%' }}></div>
-                </div>
-              </div>
-              
-              {/* Housing Category */}
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="font-medium">Housing</span>
-                  <div className="flex items-center">
-                    <IndianRupee className="h-3 w-3 mr-0.5" />
-                    <span>0 of ₹0</span>
-                  </div>
-                </div>
-                <div className="h-2 rounded-full bg-finley-neutral-light overflow-hidden">
-                  <div className="h-full bg-blue-400 rounded-full" style={{ width: '0%' }}></div>
-                </div>
-              </div>
-              
-              {/* Food & Drinks Category */}
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="font-medium">Food & Drinks</span>
-                  <div className="flex items-center">
-                    <IndianRupee className="h-3 w-3 mr-0.5" />
-                    <span>0 of ₹0</span>
-                  </div>
-                </div>
-                <div className="h-2 rounded-full bg-finley-neutral-light overflow-hidden">
-                  <div className="h-full bg-yellow-400 rounded-full" style={{ width: '0%' }}></div>
-                </div>
-              </div>
-              
-              {/* Transportation Category */}
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="font-medium">Transportation</span>
-                  <div className="flex items-center">
-                    <IndianRupee className="h-3 w-3 mr-0.5" />
-                    <span>0 of ₹0</span>
-                  </div>
-                </div>
-                <div className="h-2 rounded-full bg-finley-neutral-light overflow-hidden">
-                  <div className="h-full bg-green-400 rounded-full" style={{ width: '0%' }}></div>
-                </div>
-              </div>
-              
-              {/* Entertainment Category */}
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="font-medium">Entertainment</span>
-                  <div className="flex items-center">
-                    <IndianRupee className="h-3 w-3 mr-0.5" />
-                    <span>0 of ₹0</span>
-                  </div>
-                </div>
-                <div className="h-2 rounded-full bg-finley-neutral-light overflow-hidden">
-                  <div className="h-full bg-purple-400 rounded-full" style={{ width: '0%' }}></div>
-                </div>
-              </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
