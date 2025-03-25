@@ -5,6 +5,9 @@ import { Calendar, ShoppingBag, Coffee, Home, Car, Film, MoreHorizontal } from '
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/common/Card';
 import { ChipBadge } from '@/components/ui/ChipBadge';
 import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ExpenseItemProps {
   category: string;
@@ -38,9 +41,123 @@ const ExpenseItem = ({ category, description, amount, date, icon, iconBg }: Expe
   );
 };
 
+// Helper function to get icon and background color for category
+const getCategoryIcon = (category: string) => {
+  switch(category.toLowerCase()) {
+    case 'shopping':
+      return { 
+        icon: <ShoppingBag className="h-4 w-4 text-red-500" />, 
+        iconBg: "bg-red-100" 
+      };
+    case 'housing':
+      return { 
+        icon: <Home className="h-4 w-4 text-blue-500" />, 
+        iconBg: "bg-blue-100" 
+      };
+    case 'food & drinks':
+      return { 
+        icon: <Coffee className="h-4 w-4 text-yellow-500" />, 
+        iconBg: "bg-yellow-100" 
+      };
+    case 'transportation':
+      return { 
+        icon: <Car className="h-4 w-4 text-green-500" />, 
+        iconBg: "bg-green-100" 
+      };
+    case 'entertainment':
+      return { 
+        icon: <Film className="h-4 w-4 text-purple-500" />, 
+        iconBg: "bg-purple-100" 
+      };
+    default:
+      return { 
+        icon: <MoreHorizontal className="h-4 w-4 text-gray-500" />, 
+        iconBg: "bg-gray-100" 
+      };
+  }
+};
+
+// Helper function to format date
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-IN', { 
+    month: 'short', 
+    day: 'numeric',
+    year: '2-digit'
+  });
+};
+
 const ExpenseTracker = () => {
-  // This would normally hold actual expense data
-  const expenses: ExpenseItemProps[] = [];
+  const { user } = useAuth();
+  const currentDate = new Date();
+  const startOfWeek = new Date(currentDate);
+  startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  // Get recent expenses (last 7 days)
+  const { data: expenses = [], isLoading } = useQuery({
+    queryKey: ['expenses', 'recent'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .gte('date', startOfWeek.toISOString())
+        .order('date', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  // Get expenses by category for the current month
+  const { data: categoryExpenses = [] } = useQuery({
+    queryKey: ['expenses', 'by-category'],
+    queryFn: async () => {
+      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString();
+      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).toISOString();
+      
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .gte('date', startOfMonth)
+        .lte('date', endOfMonth);
+      
+      if (error) throw error;
+      
+      // Group by category
+      const categories = ['Shopping', 'Housing', 'Food & Drinks', 'Transportation', 'Entertainment', 'Other'];
+      const result = categories.map(category => {
+        const categoryExpenses = data.filter(
+          expense => expense.category.toLowerCase() === category.toLowerCase() || 
+                   (category === 'Other' && !categories.slice(0, 5).map(c => c.toLowerCase()).includes(expense.category.toLowerCase()))
+        );
+        return {
+          category,
+          total: categoryExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0),
+          count: categoryExpenses.length
+        };
+      });
+      
+      return result;
+    },
+    enabled: !!user,
+  });
+
+  // Calculate total expenses for category percentage calculation
+  const totalCategoryExpenses = categoryExpenses.reduce((sum, cat) => sum + cat.total, 0);
+
+  // Format expenses for display
+  const formattedExpenses = expenses.map(expense => {
+    const { icon, iconBg } = getCategoryIcon(expense.category);
+    return {
+      ...expense,
+      icon,
+      iconBg,
+      date: formatDate(expense.date)
+    };
+  });
   
   return (
     <div className="space-y-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
@@ -64,10 +181,14 @@ const ExpenseTracker = () => {
           <CardDescription>Your most recent transactions</CardDescription>
         </CardHeader>
         <CardContent>
-          {expenses.length > 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center py-6">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-finley-purple"></div>
+            </div>
+          ) : formattedExpenses.length > 0 ? (
             <div className="space-y-2">
-              {expenses.map((expense, index) => (
-                <ExpenseItem key={index} {...expense} />
+              {formattedExpenses.map((expense, index) => (
+                <ExpenseItem key={expense.id} {...expense} />
               ))}
             </div>
           ) : (
@@ -99,95 +220,39 @@ const ExpenseTracker = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                  <ShoppingBag className="h-4 w-4 text-red-500" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">Shopping</span>
-                    <span className="text-sm">₹0</span>
+              {categoryExpenses.map((category) => {
+                const { icon, iconBg } = getCategoryIcon(category.category);
+                const percentage = totalCategoryExpenses === 0 ? 0 : 
+                  Math.round((category.total / totalCategoryExpenses) * 100);
+                  
+                return (
+                  <div className="flex items-center" key={category.category}>
+                    <div className={cn("h-8 w-8 rounded-full flex items-center justify-center mr-3", iconBg)}>
+                      {icon}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium">{category.category}</span>
+                        <span className="text-sm">₹{category.total.toLocaleString()}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-finley-neutral-light overflow-hidden">
+                        <div 
+                          className={cn(
+                            "h-full rounded-full",
+                            category.category === 'Shopping' ? "bg-red-400" :
+                            category.category === 'Housing' ? "bg-blue-400" :
+                            category.category === 'Food & Drinks' ? "bg-yellow-400" :
+                            category.category === 'Transportation' ? "bg-green-400" :
+                            category.category === 'Entertainment' ? "bg-purple-400" :
+                            "bg-gray-400"
+                          )} 
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="h-2 rounded-full bg-finley-neutral-light overflow-hidden">
-                    <div className="h-full bg-red-400 rounded-full" style={{ width: '0%' }}></div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                  <Home className="h-4 w-4 text-blue-500" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">Housing</span>
-                    <span className="text-sm">₹0</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-finley-neutral-light overflow-hidden">
-                    <div className="h-full bg-blue-400 rounded-full" style={{ width: '0%' }}></div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
-                  <Coffee className="h-4 w-4 text-yellow-500" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">Food & Drinks</span>
-                    <span className="text-sm">₹0</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-finley-neutral-light overflow-hidden">
-                    <div className="h-full bg-yellow-400 rounded-full" style={{ width: '0%' }}></div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                  <Car className="h-4 w-4 text-green-500" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">Transportation</span>
-                    <span className="text-sm">₹0</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-finley-neutral-light overflow-hidden">
-                    <div className="h-full bg-green-400 rounded-full" style={{ width: '0%' }}></div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-                  <Film className="h-4 w-4 text-purple-500" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">Entertainment</span>
-                    <span className="text-sm">₹0</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-finley-neutral-light overflow-hidden">
-                    <div className="h-full bg-purple-400 rounded-full" style={{ width: '0%' }}></div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center mr-3">
-                  <MoreHorizontal className="h-4 w-4 text-gray-500" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">Others</span>
-                    <span className="text-sm">₹0</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-finley-neutral-light overflow-hidden">
-                    <div className="h-full bg-gray-400 rounded-full" style={{ width: '0%' }}></div>
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -202,8 +267,8 @@ const ExpenseTracker = () => {
           <CardContent>
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
-                <p className="text-muted-foreground mb-2">No spending data available yet</p>
-                <p className="text-sm text-muted-foreground">Start tracking your expenses to see trends</p>
+                <p className="text-muted-foreground mb-2">Not enough data available yet</p>
+                <p className="text-sm text-muted-foreground">Continue tracking your expenses to see trends</p>
               </div>
             </div>
           </CardContent>
