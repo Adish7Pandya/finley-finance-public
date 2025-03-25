@@ -23,7 +23,7 @@ export const useRealtimeData = (
     const channel = supabase
       .channel(channelName)
       .on(
-        'postgres_changes', 
+        'postgres_changes',
         { 
           event: events[0] as 'INSERT' | 'UPDATE' | 'DELETE' | '*', 
           schema: 'public',
@@ -34,7 +34,9 @@ export const useRealtimeData = (
           onUpdate(payload);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Realtime subscription status for ${table}:`, status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
