@@ -8,19 +8,34 @@ import BudgetPlanner from './BudgetPlanner';
 import SavingsGoals from './SavingsGoals';
 import AIInsights from './AIInsights';
 
-const DashboardLayout = () => {
+interface DashboardLayoutProps {
+  children?: React.ReactNode;
+}
+
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+  // If children are provided, render them instead of the default dashboard components
+  const renderContent = () => {
+    if (children) {
+      return children;
+    }
+    
+    return (
+      <div className="container space-y-12">
+        <FinancialOverview />
+        <ExpenseTracker />
+        <BudgetPlanner />
+        <SavingsGoals />
+        <AIInsights />
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
       <main className="flex-1 py-8">
-        <div className="container space-y-12">
-          <FinancialOverview />
-          <ExpenseTracker />
-          <BudgetPlanner />
-          <SavingsGoals />
-          <AIInsights />
-        </div>
+        {renderContent()}
       </main>
       
       <Footer />
