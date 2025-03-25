@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, Bell, ChevronDown, User } from 'lucide-react';
+import { Menu, X, MessageSquare, ChevronDown, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Navbar = () => {
@@ -43,10 +43,10 @@ const Navbar = () => {
           </nav>
           
           <div className="flex items-center space-x-4">
-            <button type="button" className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-finley-neutral-light hover:text-finley-neutral-darkest">
-              <Bell className="h-5 w-5" />
-              <span className="sr-only">Notifications</span>
-            </button>
+            <Link to="/chatbot" className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-finley-neutral-light hover:text-finley-neutral-darkest">
+              <MessageSquare className="h-5 w-5" />
+              <span className="sr-only">Chat with Finley</span>
+            </Link>
             
             <div className="relative">
               <button type="button" className="flex items-center space-x-2 rounded-full py-1.5 px-2 text-sm transition-colors hover:bg-finley-neutral-light">
@@ -113,6 +113,13 @@ const Navbar = () => {
               onClick={() => setIsMenuOpen(false)}
             >
               AI Insights
+            </Link>
+            <Link 
+              to="/chatbot" 
+              className="rounded-md py-2 text-muted-foreground hover:bg-finley-neutral-light hover:text-finley-neutral-darkest"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Chat with Finley
             </Link>
           </nav>
           

@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Calendar, ShoppingBag, Coffee, Home, Car, Film, MoreHorizontal } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/common/Card';
 import { ChipBadge } from '@/components/ui/ChipBadge';
@@ -78,9 +79,11 @@ const ExpenseTracker = () => {
               <p className="text-sm text-muted-foreground max-w-md">
                 Start tracking your expenses to gain insights into your spending habits.
               </p>
-              <button className="mt-4 bg-finley-purple text-white px-4 py-2 rounded-lg hover:bg-finley-purple-dark transition-colors">
-                Add Expense
-              </button>
+              <Link to="/expenses">
+                <button className="mt-4 bg-finley-purple text-white px-4 py-2 rounded-lg hover:bg-finley-purple-dark transition-colors">
+                  Add Expense
+                </button>
+              </Link>
             </div>
           )}
         </CardContent>

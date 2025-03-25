@@ -1,5 +1,5 @@
-
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Star, Sparkles, MessageSquare, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/common/Card';
 import { ChipBadge } from '@/components/ui/ChipBadge';
@@ -68,10 +68,12 @@ const AIInsights = () => {
           <p className="text-sm text-muted-foreground">Personalized financial recommendations powered by AI</p>
         </div>
         
-        <button className="inline-flex items-center justify-center rounded-lg border border-finley-purple text-finley-purple px-4 py-2 text-sm font-medium hover:bg-finley-purple-light/20 transition-colors">
-          <MessageSquare className="mr-2 h-4 w-4" />
-          Ask Finley
-        </button>
+        <Link to="/chatbot">
+          <button className="inline-flex items-center justify-center rounded-lg border border-finley-purple text-finley-purple px-4 py-2 text-sm font-medium hover:bg-finley-purple-light/20 transition-colors">
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Ask Finley
+          </button>
+        </Link>
       </div>
       
       <div className="grid grid-cols-1 gap-4">

@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { IndianRupee, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/common/Card';
@@ -21,10 +22,12 @@ const BudgetPlanner = () => {
           <p className="text-sm text-muted-foreground">Manage and track your monthly budget</p>
         </div>
         
-        <button className="inline-flex items-center justify-center rounded-lg bg-finley-teal px-4 py-2 text-sm font-medium text-white hover:bg-finley-teal-dark transition-colors">
-          <Plus className="mr-2 h-4 w-4" />
-          Create Budget
-        </button>
+        <Link to="/budget">
+          <button className="inline-flex items-center justify-center rounded-lg bg-finley-teal px-4 py-2 text-sm font-medium text-white hover:bg-finley-teal-dark transition-colors">
+            <Plus className="mr-2 h-4 w-4" />
+            Create Budget
+          </button>
+        </Link>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
