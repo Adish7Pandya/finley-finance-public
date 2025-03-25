@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -16,6 +15,13 @@ import Insights from "./pages/Insights";
 import Chatbot from "./pages/Chatbot";
 import Auth from "./pages/Auth";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import BudgetingRule from "./pages/recommendations/BudgetingRule";
+import EmergencyFund from "./pages/recommendations/EmergencyFund";
+import InvestmentBasics from "./pages/recommendations/InvestmentBasics";
+import RetirementPlanning from "./pages/recommendations/RetirementPlanning";
+import TaxOptimization from "./pages/recommendations/TaxOptimization";
+import DebtManagement from "./pages/recommendations/DebtManagement";
+import SubscriptionReview from "./pages/recommendations/SubscriptionReview";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -64,6 +70,42 @@ const App = () => {
                 <Route path="/chatbot" element={
                   <ProtectedRoute>
                     <Chatbot />
+                  </ProtectedRoute>
+                } />
+                {/* Recommendation Routes */}
+                <Route path="/recommendations/budgeting-rule" element={
+                  <ProtectedRoute>
+                    <BudgetingRule />
+                  </ProtectedRoute>
+                } />
+                <Route path="/recommendations/emergency-fund" element={
+                  <ProtectedRoute>
+                    <EmergencyFund />
+                  </ProtectedRoute>
+                } />
+                <Route path="/recommendations/investment-basics" element={
+                  <ProtectedRoute>
+                    <InvestmentBasics />
+                  </ProtectedRoute>
+                } />
+                <Route path="/recommendations/retirement-planning" element={
+                  <ProtectedRoute>
+                    <RetirementPlanning />
+                  </ProtectedRoute>
+                } />
+                <Route path="/recommendations/tax-optimization" element={
+                  <ProtectedRoute>
+                    <TaxOptimization />
+                  </ProtectedRoute>
+                } />
+                <Route path="/recommendations/debt-management" element={
+                  <ProtectedRoute>
+                    <DebtManagement />
+                  </ProtectedRoute>
+                } />
+                <Route path="/recommendations/subscription-review" element={
+                  <ProtectedRoute>
+                    <SubscriptionReview />
                   </ProtectedRoute>
                 } />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
