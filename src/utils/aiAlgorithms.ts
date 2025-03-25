@@ -1,4 +1,3 @@
-
 /**
  * AI Algorithms for financial insights
  */
@@ -7,6 +6,7 @@ type ExpenseData = {
   category: string;
   amount: number;
   date: string;
+  description?: string | null; // Added optional description property
 };
 
 type BudgetData = {

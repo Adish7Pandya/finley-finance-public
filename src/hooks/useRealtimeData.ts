@@ -23,7 +23,7 @@ export const useRealtimeData = (
     const channel = supabase
       .channel(channelName)
       .on(
-        'postgres_changes',
+        'postgres_changes', 
         { 
           event: events[0] as 'INSERT' | 'UPDATE' | 'DELETE' | '*', 
           schema: 'public',

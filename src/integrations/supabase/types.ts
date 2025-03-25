@@ -191,6 +191,42 @@ export type Database = {
         }
         Relationships: []
       }
+      records_summary: {
+        Row: {
+          budget_utilization_percentage: number
+          created_at: string
+          id: string
+          month: number
+          total_expenses: number
+          total_income: number
+          total_savings: number
+          user_id: string
+          year: number
+        }
+        Insert: {
+          budget_utilization_percentage: number
+          created_at?: string
+          id?: string
+          month: number
+          total_expenses: number
+          total_income: number
+          total_savings: number
+          user_id: string
+          year: number
+        }
+        Update: {
+          budget_utilization_percentage?: number
+          created_at?: string
+          id?: string
+          month?: number
+          total_expenses?: number
+          total_income?: number
+          total_savings?: number
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
