@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
@@ -26,6 +25,16 @@ type RecordSummary = {
   budget_utilization_percentage: number;
   created_at?: string;
 };
+
+// Type for expense data in anomalies
+interface ExpenseData {
+  id: string;
+  amount: number;
+  category: string;
+  date: string;
+  description?: string | null;
+  user_id: string;
+}
 
 // Custom components for insights sections
 const InsightSection = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => (

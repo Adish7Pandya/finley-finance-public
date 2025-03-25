@@ -6,8 +6,9 @@ export const fetchAndGenerateSummary = async (userId: string) => {
   
   try {
     // We'll first check if we have any summaries
-    const { data: existingSummaries, error: summariesError } = await supabase
-      .from('records_summary')
+    // Use any type to bypass TypeScript type checking for tables not in the types.ts
+    const { data: existingSummaries, error: summariesError } = await (supabase
+      .from('records_summary') as any)
       .select('*')
       .eq('user_id', userId);
       
@@ -17,7 +18,7 @@ export const fetchAndGenerateSummary = async (userId: string) => {
     }
     
     // If we already have summaries, let's just return those
-    if (existingSummaries.length > 0) {
+    if (existingSummaries && existingSummaries.length > 0) {
       return existingSummaries;
     }
     
@@ -59,10 +60,10 @@ export const fetchAndGenerateSummary = async (userId: string) => {
         }
         
         // Calculate total expenses
-        const totalExpenses = expenses.reduce((sum, expense) => {
+        const totalExpenses = expenses ? expenses.reduce((sum, expense) => {
           const amount = typeof expense.amount === 'string' ? parseFloat(expense.amount) : expense.amount;
           return sum + amount;
-        }, 0);
+        }, 0) : 0;
         
         // Get budget for this month
         const { data: budgets, error: budgetsError } = await supabase
@@ -78,10 +79,10 @@ export const fetchAndGenerateSummary = async (userId: string) => {
         }
         
         // Calculate total budget
-        const totalBudget = budgets.reduce((sum, budget) => {
+        const totalBudget = budgets ? budgets.reduce((sum, budget) => {
           const amount = typeof budget.amount === 'string' ? parseFloat(budget.amount) : budget.amount;
           return sum + amount;
-        }, 0);
+        }, 0) : 0;
         
         // Calculate budget utilization
         const budgetUtilization = totalBudget > 0 ? (totalExpenses / totalBudget) * 100 : 0;
@@ -90,8 +91,8 @@ export const fetchAndGenerateSummary = async (userId: string) => {
         const savings = income - totalExpenses;
         
         // Create the summary record
-        const { data: insertResult, error: insertError } = await supabase
-          .from('records_summary')
+        const { data: insertResult, error: insertError } = await (supabase
+          .from('records_summary') as any)
           .insert({
             user_id: userId,
             year,

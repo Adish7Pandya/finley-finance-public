@@ -16,10 +16,13 @@ export const useRealtimeData = (
 
     const events = Array.isArray(event) ? event : [event];
     
+    // Create a channel name with a unique identifier
+    const channelName = `table-changes-${table}-${Math.random().toString(36).substring(2, 11)}`;
+    
     const channel = supabase
-      .channel('table-db-changes')
+      .channel(channelName)
       .on(
-        'postgres_changes',
+        'postgres_changes', 
         { 
           event: events[0], // Use the first event for channel creation
           schema: 'public',
