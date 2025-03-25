@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Calendar } from 'lucide-react';
+import { Calendar, CalendarIcon as LucideCalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 
@@ -9,10 +10,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CalendarIcon } from '@/components/ui/calendar';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/common/Card';
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from '@/components/ui/use-toast';
 
 type Goal = {
@@ -47,16 +48,16 @@ const Goals = () => {
   const [date, setDate] = React.useState<DateRange | undefined>({
     from: new Date(),
     to: new Date(new Date().setDate(new Date().getDate() + 30)),
-  })
+  });
 
-  const handleAddGoal = async (data: Omit<Goal, "id" | "current_amount">) => {
+  const handleAddGoal = async (data: Omit<Goal, "id" | "current_amount" | "user_id"> & { user_id: string }) => {
     try {
       setIsLoading(true);
       
       const { error } = await supabase
         .from('goals')
         .insert({
-          user_id: user?.id,
+          user_id: data.user_id,
           title: data.title,
           target_amount: data.target_amount,
           target_date: data.target_date,
@@ -69,7 +70,7 @@ const Goals = () => {
         title: "Success",
         description: "Goal added successfully!",
       });
-      queryClient.invalidateQueries(['goals']);
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
       setIsAddingGoal(false);
     } catch (error: any) {
       toast({
@@ -96,30 +97,34 @@ const Goals = () => {
           <PopoverTrigger asChild>
             <Button
               variant={"outline"}
-              className={format(date?.from as Date, "PPP")}
+              className={cn(
+                "w-full justify-start text-left",
+                !date && "text-muted-foreground"
+              )}
             >
-              <CalendarIcon className="mr-2 h-4 w-4" />
+              <LucideCalendarIcon className="mr-2 h-4 w-4" />
               {date?.from ? (
-                format(date?.from as Date, "PPP")
+                format(date.from, "PPP")
               ) : (
                 <span>Pick a date</span>
               )}
-              {" - "}
-              {date?.to ? (
-                format(date?.to as Date, "PPP")
-              ) : (
-                <span>Pick a date</span>
-              )}
+              {date?.to && date.to !== date.from ? (
+                <>
+                  {" - "}
+                  {format(date.to, "PPP")}
+                </>
+              ) : null}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="center" side="bottom">
-            <Calendar
+            <CalendarComponent
               mode="range"
               defaultMonth={date?.from}
               selected={date}
               onSelect={setDate}
               numberOfMonths={2}
               pagedNavigation
+              className="p-3 pointer-events-auto"
             />
           </PopoverContent>
         </Popover>
@@ -143,7 +148,21 @@ const Goals = () => {
                 return;
               }
 
-              await handleAddGoal({ title, target_amount, target_date });
+              if (!user?.id) {
+                toast({
+                  title: "Error",
+                  description: "User not authenticated",
+                  variant: "destructive",
+                });
+                return;
+              }
+
+              await handleAddGoal({ 
+                title, 
+                target_amount, 
+                target_date,
+                user_id: user.id
+              });
             }}
             disabled={isLoading}
           >
@@ -153,6 +172,11 @@ const Goals = () => {
       </div>
     </div>
   );
+
+  // Helper function to add cn function
+  const cn = (...classes: string[]) => {
+    return classes.filter(Boolean).join(' ');
+  };
 
   return (
     <div className="container space-y-6 animate-slide-up">

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, ShoppingBag, Coffee, Home, Car, Film, MoreHorizontal } from 'lucide-react';
@@ -134,7 +135,11 @@ const ExpenseTracker = () => {
         );
         return {
           category,
-          total: categoryExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0),
+          total: categoryExpenses.reduce((sum, expense) => {
+            // Fix: Convert expense.amount to number if it's a string
+            const amount = typeof expense.amount === 'string' ? parseFloat(expense.amount) : expense.amount;
+            return sum + amount;
+          }, 0),
           count: categoryExpenses.length
         };
       });
