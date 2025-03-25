@@ -7,6 +7,7 @@ import { ChipBadge } from '@/components/ui/ChipBadge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
 
 const COLORS = ['#9B87F5', '#ECEDF0'];
 
@@ -82,6 +83,63 @@ const BudgetPlanner = () => {
     acc[budget.category] = budget.amount;
     return acc;
   }, {} as Record<string, number>);
+
+  // Generate budget insights
+  const generateBudgetInsights = () => {
+    const insights: { title: string; description: string; type: 'warning' | 'success' | 'info' }[] = [];
+
+    // Check if budget is set
+    if (totalBudget === 0) {
+      return [{
+        title: "Set Up Your Budget",
+        description: `Set up your budget for ${currentMonthName} ${currentYear} to get personalized insights and track your spending patterns.`,
+        type: 'info'
+      }];
+    }
+
+    // Check overall budget utilization
+    const percentageUsed = (totalSpent / totalBudget) * 100;
+    if (percentageUsed > 90) {
+      insights.push({
+        title: "Budget Alert",
+        description: `You've used ${percentageUsed.toFixed(1)}% of your total budget. Consider reviewing your spending to stay within limits.`,
+        type: 'warning'
+      });
+    } else if (percentageUsed < 50 && currentDate.getDate() > 20) {
+      insights.push({
+        title: "Under Budget",
+        description: "You're well under budget this month. Consider allocating the extra to savings or debt repayment.",
+        type: 'success'
+      });
+    }
+
+    // Check individual category utilization
+    Object.entries(budgetByCategory).forEach(([category, budget]) => {
+      const spent = spentByCategory[category] || 0;
+      const categoryPercentage = (spent / budget) * 100;
+
+      if (categoryPercentage > 90) {
+        insights.push({
+          title: `${category} Budget Alert`,
+          description: `You've used ${categoryPercentage.toFixed(1)}% of your ${category} budget.`,
+          type: 'warning'
+        });
+      }
+    });
+
+    // If no specific insights, provide a general status
+    if (insights.length === 0) {
+      insights.push({
+        title: "On Track",
+        description: `Your spending is on track for ${currentMonthName}. Keep maintaining your budget goals!`,
+        type: 'success'
+      });
+    }
+
+    return insights;
+  };
+
+  const budgetInsights = generateBudgetInsights();
 
   // Category colors
   const categoryColors = {
@@ -230,19 +288,42 @@ const BudgetPlanner = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center py-6 text-center px-4">
-              <div className="h-12 w-12 rounded-full bg-finley-teal-light flex items-center justify-center mb-4">
-                <span className="text-finley-teal-dark text-lg font-medium">AI</span>
-              </div>
-              <h3 className="text-lg font-medium mb-2">Track Your {currentMonthName} Budget</h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Set up your budget for {currentMonthName} {currentYear} to get personalized insights and track your spending patterns.
-              </p>
-              <Link to="/budget">
-                <button className="mt-4 bg-finley-teal text-white px-4 py-2 rounded-lg hover:bg-finley-teal-dark transition-colors">
-                  Set Up Budget
-                </button>
-              </Link>
+            <div className="space-y-4">
+              {budgetInsights.map((insight, index) => (
+                <div 
+                  key={index} 
+                  className={cn(
+                    "p-4 rounded-lg border",
+                    insight.type === 'warning' ? "bg-amber-50 border-amber-200" :
+                    insight.type === 'success' ? "bg-green-50 border-green-200" :
+                    "bg-blue-50 border-blue-200"
+                  )}
+                >
+                  <h4 className={cn(
+                    "font-medium mb-1",
+                    insight.type === 'warning' ? "text-amber-700" :
+                    insight.type === 'success' ? "text-green-700" :
+                    "text-blue-700"
+                  )}>
+                    {insight.title}
+                  </h4>
+                  <p className={cn(
+                    "text-sm",
+                    insight.type === 'warning' ? "text-amber-600" :
+                    insight.type === 'success' ? "text-green-600" :
+                    "text-blue-600"
+                  )}>
+                    {insight.description}
+                  </p>
+                </div>
+              ))}
+              {totalBudget === 0 && (
+                <Link to="/budget">
+                  <button className="w-full mt-4 bg-finley-teal text-white px-4 py-2 rounded-lg hover:bg-finley-teal-dark transition-colors">
+                    Set Up Budget
+                  </button>
+                </Link>
+              )}
             </div>
           </CardContent>
         </Card>

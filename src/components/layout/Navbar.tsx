@@ -1,14 +1,27 @@
-
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Menu, X, MessageSquare, ChevronDown, User } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Menu, X, MessageSquare, ChevronDown, User, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
   };
 
   return (
@@ -48,17 +61,31 @@ const Navbar = () => {
               <span className="sr-only">Chat with Finley</span>
             </Link>
             
-            <div className="relative">
-              <button type="button" className="flex items-center space-x-2 rounded-full py-1.5 px-2 text-sm transition-colors hover:bg-finley-neutral-light">
-                <div className="h-7 w-7 rounded-full bg-finley-purple-light flex items-center justify-center">
-                  <User className="h-4 w-4 text-finley-purple-dark" />
-                </div>
-                <span className="hidden text-sm font-medium md:inline-block">
-                  Profile
-                </span>
-                <ChevronDown className="h-4 w-4" />
-              </button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="flex items-center space-x-2 rounded-full py-1.5 px-2 text-sm transition-colors hover:bg-finley-neutral-light">
+                  <div className="h-7 w-7 rounded-full bg-finley-purple-light flex items-center justify-center">
+                    <User className="h-4 w-4 text-finley-purple-dark" />
+                  </div>
+                  <span className="hidden text-sm font-medium md:inline-block">
+                    Profile
+                  </span>
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="flex items-center">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>View Profile</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
         
@@ -134,6 +161,16 @@ const Navbar = () => {
               </div>
               <span className="text-sm font-medium">Profile</span>
             </Link>
+            <button
+              onClick={() => {
+                handleSignOut();
+                setIsMenuOpen(false);
+              }}
+              className="flex items-center space-x-2 rounded-md py-2 text-red-600 hover:bg-finley-neutral-light w-full"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="text-sm font-medium">Sign Out</span>
+            </button>
           </div>
         </div>
       </div>
