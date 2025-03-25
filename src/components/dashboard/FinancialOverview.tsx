@@ -1,12 +1,12 @@
-
-import React, { useEffect } from 'react';
+import React from 'react';
 import { IndianRupee, TrendingUp, TrendingDown, PiggyBank } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/common/Card';
 import { ChipBadge } from '@/components/ui/ChipBadge';
 import { cn } from '@/lib/utils';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRealtimeData } from '@/hooks/useRealtimeData';
 
 const OverviewCard = ({ 
   title, 
@@ -67,10 +67,20 @@ const OverviewCard = ({
 
 const FinancialOverview = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const currentMonth = new Date().getMonth() + 1; // 1-12
   const currentYear = new Date().getFullYear();
   const previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
   const previousMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
+  // Set up real-time updates
+  useRealtimeData('expenses', ['INSERT', 'UPDATE', 'DELETE'], () => {
+    queryClient.invalidateQueries({ queryKey: ['expenses'] });
+  });
+
+  useRealtimeData('goals', ['INSERT', 'UPDATE', 'DELETE'], () => {
+    queryClient.invalidateQueries({ queryKey: ['goals'] });
+  });
 
   // Get current month expenses
   const { data: currentExpenses = [], isLoading: isLoadingExpenses } = useQuery({

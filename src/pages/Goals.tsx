@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Calendar, CalendarIcon as LucideCalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 
@@ -10,11 +9,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/common/Card';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from '@/components/ui/use-toast';
+import { useRealtimeData } from '@/hooks/useRealtimeData';
+import { cn } from '@/lib/utils';
 
 type Goal = {
   id: string;
@@ -30,6 +31,10 @@ const Goals = () => {
   const [isAddingGoal, setIsAddingGoal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
+
+  useRealtimeData('goals', ['INSERT', 'UPDATE', 'DELETE'], () => {
+    queryClient.invalidateQueries({ queryKey: ['goals'] });
+  });
 
   const { data: goals, isLoading: isLoadingGoals } = useQuery({
     queryKey: ['goals'],
@@ -173,7 +178,6 @@ const Goals = () => {
     </div>
   );
 
-  // Helper function to add cn function
   const cn = (...classes: string[]) => {
     return classes.filter(Boolean).join(' ');
   };

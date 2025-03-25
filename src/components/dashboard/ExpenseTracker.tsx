@@ -1,13 +1,20 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, ShoppingBag, Coffee, Home, Car, Film, MoreHorizontal } from 'lucide-react';
+import { Calendar, ChevronDown, ShoppingBag, Coffee, Home, Car, Film, MoreHorizontal } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/common/Card';
 import { ChipBadge } from '@/components/ui/ChipBadge';
 import { cn } from '@/lib/utils';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRealtimeData } from '@/hooks/useRealtimeData';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface ExpenseItemProps {
   category: string;
@@ -85,22 +92,39 @@ const formatDate = (dateString: string) => {
   });
 };
 
+type PeriodType = 'week' | 'month';
+
 const ExpenseTracker = () => {
   const { user } = useAuth();
+  const [periodType, setPeriodType] = useState<PeriodType>('week');
+  const queryClient = useQueryClient();
+  
+  // Calculate date ranges
   const currentDate = new Date();
+  
   const startOfWeek = new Date(currentDate);
   startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
   
+  const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  startOfMonth.setHours(0, 0, 0, 0);
+  
+  const periodStart = periodType === 'week' ? startOfWeek : startOfMonth;
+  
+  // Use real-time updates
+  useRealtimeData('expenses', ['INSERT', 'UPDATE', 'DELETE'], () => {
+    queryClient.invalidateQueries({ queryKey: ['expenses'] });
+  });
+  
   const { data: expenses = [], isLoading } = useQuery({
-    queryKey: ['expenses', 'recent'],
+    queryKey: ['expenses', 'recent', periodType],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
-        .gte('date', startOfWeek.toISOString())
+        .gte('date', periodStart.toISOString())
         .order('date', { ascending: false })
-        .limit(5);
+        .limit(periodType === 'week' ? 5 : 10);
       
       if (error) throw error;
       return data || [];
@@ -114,16 +138,12 @@ const ExpenseTracker = () => {
   );
 
   const { data: categoryExpenses = [] } = useQuery({
-    queryKey: ['expenses', 'by-category'],
+    queryKey: ['expenses', 'by-category', periodType],
     queryFn: async () => {
-      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString();
-      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).toISOString();
-      
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
-        .gte('date', startOfMonth)
-        .lte('date', endOfMonth);
+        .gte('date', periodStart.toISOString());
       
       if (error) throw error;
       
@@ -136,7 +156,6 @@ const ExpenseTracker = () => {
         return {
           category,
           total: categoryExpenses.reduce((sum, expense) => {
-            // Fix: Convert expense.amount to number if it's a string
             const amount = typeof expense.amount === 'string' ? parseFloat(expense.amount) : expense.amount;
             return sum + amount;
           }, 0),
@@ -170,17 +189,30 @@ const ExpenseTracker = () => {
         </div>
         
         <div className="flex items-center gap-3">
-          <button className="text-sm text-finley-purple-dark hover:text-finley-purple flex items-center">
-            <Calendar className="h-4 w-4 mr-1" />
-            This Week
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="text-sm text-finley-purple-dark hover:text-finley-purple flex items-center">
+              <Calendar className="h-4 w-4 mr-1" />
+              {periodType === 'week' ? 'This Week' : 'This Month'}
+              <ChevronDown className="h-3 w-3 ml-1" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => setPeriodType('week')}>
+                This Week
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setPeriodType('month')}>
+                This Month
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       
       <Card>
         <CardHeader className="pb-3">
           <CardTitle>Expenses</CardTitle>
-          <CardDescription>Your most recent transactions</CardDescription>
+          <CardDescription>
+            {periodType === 'week' ? 'Your transactions this week' : 'Your transactions this month'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
