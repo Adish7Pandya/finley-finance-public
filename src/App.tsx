@@ -22,6 +22,7 @@ import RetirementPlanning from "./pages/recommendations/RetirementPlanning";
 import TaxOptimization from "./pages/recommendations/TaxOptimization";
 import DebtManagement from "./pages/recommendations/DebtManagement";
 import SubscriptionReview from "./pages/recommendations/SubscriptionReview";
+import SmartShopping from "./pages/recommendations/SmartShopping";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -106,6 +107,11 @@ const App = () => {
                 <Route path="/recommendations/subscription-review" element={
                   <ProtectedRoute>
                     <SubscriptionReview />
+                  </ProtectedRoute>
+                } />
+                <Route path="/recommendations/smart-shopping" element={
+                  <ProtectedRoute>
+                    <SmartShopping />
                   </ProtectedRoute>
                 } />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

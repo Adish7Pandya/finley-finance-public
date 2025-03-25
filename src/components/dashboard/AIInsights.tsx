@@ -108,11 +108,11 @@ const AIInsights = () => {
             />
 
             <RecommendationCard
-              title="Automated Savings"
-              description="Set up automatic transfers to make saving effortless and consistent, helping you build wealth over time."
-              difficulty="Beginner"
+              title="Smart Shopping Strategies"
+              description="Learn how to maximize your savings through cashback apps, price tracking, and strategic shopping timing."
+              difficulty="Quick Win"
               icon={<PiggyBank className="h-5 w-5 text-finley-purple" />}
-              link="/recommendations/automated-savings"
+              link="/recommendations/smart-shopping"
               estimatedTime="10 min read"
             />
 

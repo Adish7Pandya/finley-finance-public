@@ -1,10 +1,12 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { IndianRupee, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/common/Card';
 import { ChipBadge } from '@/components/ui/ChipBadge';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Sample data for the pie chart
 const emptyData = [
@@ -14,6 +16,66 @@ const emptyData = [
 const COLORS = ['#9B87F5', '#ECEDF0'];
 
 const BudgetPlanner = () => {
+  const { user } = useAuth();
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1; // 1-based month
+  const currentYear = currentDate.getFullYear();
+  const currentMonthName = currentDate.toLocaleString('default', { month: 'long' });
+
+  // Fetch current month's budget
+  const { data: currentBudget, isLoading } = useQuery({
+    queryKey: ['budget', currentMonth, currentYear],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('budgets')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('month', currentMonth)
+        .eq('year', currentYear)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Fetch current month's expenses
+  const { data: currentExpenses = [] } = useQuery({
+    queryKey: ['expenses', currentMonth, currentYear],
+    queryFn: async () => {
+      const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
+      const endOfMonth = new Date(currentYear, currentMonth, 0);
+      
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('user_id', user?.id)
+        .gte('date', startOfMonth.toISOString())
+        .lte('date', endOfMonth.toISOString());
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  // Calculate total spent
+  const totalSpent = currentExpenses.reduce((sum, expense) => 
+    sum + (typeof expense.amount === 'string' ? parseFloat(expense.amount) : expense.amount), 0
+  );
+
+  // Calculate remaining budget
+  const totalBudget = currentBudget?.amount || 0;
+  const remainingBudget = totalBudget - totalSpent;
+
+  // Calculate percentage spent for the pie chart
+  const percentageSpent = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+  const chartData = [
+    { name: 'Spent', value: percentageSpent },
+    { name: 'Available', value: 100 - percentageSpent },
+  ];
+
   return (
     <div className="space-y-6 animate-slide-up" style={{ animationDelay: '200ms' }}>
       <div className="flex items-center justify-between">
@@ -34,14 +96,14 @@ const BudgetPlanner = () => {
         <Card className="md:col-span-1 row-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-medium">Monthly Budget</CardTitle>
-            <CardDescription>July 2023</CardDescription>
+            <CardDescription>{currentMonthName} {currentYear}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-48 relative">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={emptyData}
+                    data={chartData}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
@@ -49,7 +111,7 @@ const BudgetPlanner = () => {
                     paddingAngle={5}
                     dataKey="value"
                   >
-                    {emptyData.map((entry, index) => (
+                    {chartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -59,9 +121,9 @@ const BudgetPlanner = () => {
                 <span className="text-xs text-muted-foreground">Available</span>
                 <div className="text-2xl font-bold flex items-center">
                   <IndianRupee className="h-4 w-4 mr-1" />
-                  0
+                  {remainingBudget.toLocaleString()}
                 </div>
-                <span className="text-xs text-muted-foreground mt-1">of ₹0</span>
+                <span className="text-xs text-muted-foreground mt-1">of ₹{totalBudget.toLocaleString()}</span>
               </div>
             </div>
             
@@ -74,11 +136,14 @@ const BudgetPlanner = () => {
                   </div>
                   <div className="flex items-center">
                     <IndianRupee className="h-3 w-3 mr-0.5" />
-                    <span>0</span>
+                    <span>{totalSpent.toLocaleString()}</span>
                   </div>
                 </div>
                 <div className="h-1.5 rounded-full bg-finley-neutral-light overflow-hidden">
-                  <div className="h-full bg-finley-purple rounded-full" style={{ width: '0%' }}></div>
+                  <div 
+                    className="h-full bg-finley-purple rounded-full" 
+                    style={{ width: `${percentageSpent}%` }}
+                  ></div>
                 </div>
               </div>
               
@@ -90,11 +155,14 @@ const BudgetPlanner = () => {
                   </div>
                   <div className="flex items-center">
                     <IndianRupee className="h-3 w-3 mr-0.5" />
-                    <span>0</span>
+                    <span>{remainingBudget.toLocaleString()}</span>
                   </div>
                 </div>
                 <div className="h-1.5 rounded-full bg-finley-neutral-light overflow-hidden">
-                  <div className="h-full bg-finley-neutral rounded-full" style={{ width: '100%' }}></div>
+                  <div 
+                    className="h-full bg-finley-neutral rounded-full" 
+                    style={{ width: `${100 - percentageSpent}%` }}
+                  ></div>
                 </div>
               </div>
             </div>
@@ -195,13 +263,15 @@ const BudgetPlanner = () => {
               <div className="h-12 w-12 rounded-full bg-finley-teal-light flex items-center justify-center mb-4">
                 <span className="text-finley-teal-dark text-lg font-medium">AI</span>
               </div>
-              <h3 className="text-lg font-medium mb-2">Set up your first budget</h3>
+              <h3 className="text-lg font-medium mb-2">Track Your {currentMonthName} Budget</h3>
               <p className="text-sm text-muted-foreground max-w-md">
-                Create a budget to receive AI-powered insights and recommendations to optimize your spending.
+                Set up your budget for {currentMonthName} {currentYear} to get personalized insights and track your spending patterns.
               </p>
-              <button className="mt-4 bg-finley-teal text-white px-4 py-2 rounded-lg hover:bg-finley-teal-dark transition-colors">
-                Get Started
-              </button>
+              <Link to="/budget">
+                <button className="mt-4 bg-finley-teal text-white px-4 py-2 rounded-lg hover:bg-finley-teal-dark transition-colors">
+                  Set Up Budget
+                </button>
+              </Link>
             </div>
           </CardContent>
         </Card>
