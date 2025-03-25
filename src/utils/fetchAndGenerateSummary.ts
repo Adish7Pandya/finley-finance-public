@@ -6,9 +6,9 @@ export const fetchAndGenerateSummary = async (userId: string) => {
   
   try {
     // We'll first check if we have any summaries
-    // Use any type to bypass TypeScript type checking for tables not in the types.ts
-    const { data: existingSummaries, error: summariesError } = await (supabase
-      .from('records_summary') as any)
+    // Use type assertion to bypass TypeScript type checking for tables not in the types.ts
+    const { data: existingSummaries, error: summariesError } = await supabase
+      .from('records_summary' as any)
       .select('*')
       .eq('user_id', userId);
       
@@ -91,8 +91,8 @@ export const fetchAndGenerateSummary = async (userId: string) => {
         const savings = income - totalExpenses;
         
         // Create the summary record
-        const { data: insertResult, error: insertError } = await (supabase
-          .from('records_summary') as any)
+        const { data: insertResult, error: insertError } = await supabase
+          .from('records_summary' as any)
           .insert({
             user_id: userId,
             year,

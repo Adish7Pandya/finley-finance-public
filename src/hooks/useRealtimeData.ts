@@ -25,7 +25,7 @@ export const useRealtimeData = (
       .on(
         'postgres_changes', 
         { 
-          event: events[0], // Use the first event for channel creation
+          event: events[0] as 'INSERT' | 'UPDATE' | 'DELETE' | '*', 
           schema: 'public',
           table: table 
         },
