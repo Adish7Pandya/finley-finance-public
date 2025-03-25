@@ -128,10 +128,10 @@ const FinancialOverview = () => {
   });
 
   // Calculate total expenses for current month
-  const totalExpenses = currentExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+  const totalExpenses = currentExpenses.reduce((sum, expense) => sum + (typeof expense.amount === 'string' ? parseFloat(expense.amount) : expense.amount), 0);
   
   // Calculate total expenses for previous month
-  const totalPrevExpenses = previousExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+  const totalPrevExpenses = previousExpenses.reduce((sum, expense) => sum + (typeof expense.amount === 'string' ? parseFloat(expense.amount) : expense.amount), 0);
   
   // Calculate expense trend
   const expenseTrend = totalPrevExpenses === 0 ? null : 
@@ -144,7 +144,7 @@ const FinancialOverview = () => {
   }
 
   // Calculate total savings (total of all goal current_amounts)
-  const totalSavings = goals.reduce((sum, goal) => sum + parseFloat(goal.current_amount), 0);
+  const totalSavings = goals.reduce((sum, goal) => sum + (typeof goal.current_amount === 'string' ? parseFloat(goal.current_amount) : goal.current_amount), 0);
   
   // Calculate balance (income - expenses)
   const balance = monthlyIncome - totalExpenses;

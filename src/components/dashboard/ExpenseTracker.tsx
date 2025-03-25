@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, ShoppingBag, Coffee, Home, Car, Film, MoreHorizontal } from 'lucide-react';
@@ -41,7 +40,6 @@ const ExpenseItem = ({ category, description, amount, date, icon, iconBg }: Expe
   );
 };
 
-// Helper function to get icon and background color for category
 const getCategoryIcon = (category: string) => {
   switch(category.toLowerCase()) {
     case 'shopping':
@@ -77,7 +75,6 @@ const getCategoryIcon = (category: string) => {
   }
 };
 
-// Helper function to format date
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-IN', { 
@@ -94,7 +91,6 @@ const ExpenseTracker = () => {
   startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
   
-  // Get recent expenses (last 7 days)
   const { data: expenses = [], isLoading } = useQuery({
     queryKey: ['expenses', 'recent'],
     queryFn: async () => {
@@ -111,7 +107,11 @@ const ExpenseTracker = () => {
     enabled: !!user,
   });
 
-  // Get expenses by category for the current month
+  const totalSpent = expenses.reduce((total, expense) => 
+    total + (typeof expense.amount === 'string' ? parseFloat(expense.amount) : expense.amount), 
+    0
+  );
+
   const { data: categoryExpenses = [] } = useQuery({
     queryKey: ['expenses', 'by-category'],
     queryFn: async () => {
@@ -126,7 +126,6 @@ const ExpenseTracker = () => {
       
       if (error) throw error;
       
-      // Group by category
       const categories = ['Shopping', 'Housing', 'Food & Drinks', 'Transportation', 'Entertainment', 'Other'];
       const result = categories.map(category => {
         const categoryExpenses = data.filter(
@@ -145,10 +144,8 @@ const ExpenseTracker = () => {
     enabled: !!user,
   });
 
-  // Calculate total expenses for category percentage calculation
   const totalCategoryExpenses = categoryExpenses.reduce((sum, cat) => sum + cat.total, 0);
 
-  // Format expenses for display
   const formattedExpenses = expenses.map(expense => {
     const { icon, iconBg } = getCategoryIcon(expense.category);
     return {
