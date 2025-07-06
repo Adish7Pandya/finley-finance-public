@@ -1,69 +1,58 @@
-# Welcome to your Lovable project
+## Finley Finance Project
+## Overview
 
-## Project info
+Finley is an AI-powered financial advisor dashboard designed to help users manage and track their finances effectively. It analyzes user financial data, predicts optimal investment opportunities based on historical patterns, risk appetite, and financial goals, and provides actionable insights.
 
-**URL**: https://lovable.dev/projects/d2b3d979-1eb8-433b-909d-e00b59852836
+## Features
 
-## How can I edit this code?
+Budget Planning: Manage and track monthly budgets across various categories.
 
-There are several ways of editing your application.
+Expense Tracking: Monitor spending trends over time.
 
-**Use Lovable**
+Investment Recommendations: AI-driven predictions for optimal investment opportunities.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/d2b3d979-1eb8-433b-909d-e00b59852836) and start prompting.
+Budget Alerts: Notifications for exceeding budget limits.
 
-Changes made via Lovable will be committed automatically to this repo.
+## Implementation Strategy
 
-**Use your preferred IDE**
+Core Concept
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Extract user financial data from Supabase.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Analyze financial behavior (income, expenses, savings, financial goals).
 
-Follow these steps:
+Assess risk profile (low, medium, high) based on data patterns.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Fetch and analyze stock market data from external APIs.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Predict the best investment opportunities based on user data.
 
-# Step 3: Install the necessary dependencies.
-npm i
+Display investment recommendations on the frontend.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## Getting Started
 
-**Edit a file directly in GitHub**
+Clone the repository: git clone https://https://github.com/Adish7Pandya/finley-finance-public
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Install dependencies: npm install
 
-**Use GitHub Codespaces**
+Set up Supabase environment variables.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Run the application: npm start
 
-## What technologies are used for this project?
+## Technologies Used
 
-This project is built with .
+Frontend: HTML, CSS, JavaScript
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Backend: Supabase
 
-## How can I deploy this project?
+AI Analysis: K-Means , Random Forest , Linear Regression 
 
-Simply open [Lovable](https://lovable.dev/projects/d2b3d979-1eb8-433b-909d-e00b59852836) and click on Share -> Publish.
+External APIs: Stock market data APIs
 
-## I want to use a custom domain - is that possible?
+## Contributing
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+##License
+
+MIT
